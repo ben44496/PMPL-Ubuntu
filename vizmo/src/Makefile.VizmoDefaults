@@ -1,0 +1,186 @@
+################################################################################
+# OpenGL
+################################################################################
+GL_INCL := -I/usr/include/GL
+GL_LIBS := -lglut -lGLU -lGL
+ifeq ($(platform), MACOS_gcc)
+  GL_LIBS := -framework GLUT -framework OpenGL
+endif
+
+################################################################################
+# Qt4
+################################################################################
+QT_BASE := /usr/include
+
+ifeq ($(platform), MACOS_gcc)
+  QT_BASE := /usr/local/opt/qt/include
+endif
+
+ifeq ($(platform), Ubuntu)
+  QT_BASE := /usr/include/qt4
+endif
+
+QT_INCL := -I$(QT_BASE)/Qt -I$(QT_BASE)/QtCore -I$(QT_BASE)/QtGui \
+           -I$(QT_BASE)/QtOpenGL
+QT_LIBS := -lQtGui -lQtOpenGL -lQtCore
+
+ifeq ($(platform), MACOS_gcc)
+  QT_INCL := -I$(QT_BASE) -I$(QT_BASE)/QtCore -I$(QT_BASE)/QtGui \
+	           -I$(QT_BASE)/QtOpenGL -I$(QT_BASE)/QtWidgets
+  QT_LIBS := -F/usr/local/opt/qt/Frameworks -framework QtCore -framework QtGui -framework QtOpenGL -framework QtWidgets
+endif
+
+ifeq ($(platform), Ubuntu)
+  QT_INCL := -I$(QT_BASE) -I$(QT_BASE)/Qt -I$(QT_BASE)/QtCore -I$(QT_BASE)/QtGui \
+             -I$(QT_BASE)/QtOpenGL
+  QT_LIBS := -lQtGui -lQtOpenGL -lQtCore
+endif
+
+# Ensure the moc (metaobject compiler) is found.
+QT_MOC_BASE = /usr/lib64/qt4/bin
+ifeq ($(platform), MACOS_gcc)
+  QT_MOC_BASE = /usr/local/opt/qt/bin
+endif
+ifeq ($(platform), Ubuntu)
+  QT_MOC_BASE = /usr/share/qt4/bin
+endif
+QT_MOC := $(shell find $(QT_MOC_BASE)/moc 2> /dev/null)
+ifndef QT_MOC
+  $(error Qt moc not found at $(QT_MOC_BASE)/moc.)
+endif
+
+# Find the header files with Q_OBJECT.
+ifeq ($(platform), MACOS_gcc)
+  MOC_SRCS := $(patsubst ./%.h,moc_%.cpp, $(shell find . -type f \
+                  -name '*.h' -exec grep -rl Q_OBJECT \{} + ))
+else
+  MOC_SRCS := $(patsubst ./%.h,moc_%.cpp, $(shell find . -type f \
+                  -name '*.h' -execdir grep -rl Q_OBJECT \{} + ))
+endif
+
+# Create the list of objects which must be built from MOC_SRCS.
+MOC_OBJS := $(patsubst %.cpp,$(MOC_DIR)/%.o, $(MOC_SRCS))
+
+
+################################################################################
+#Vizmo Utilities - PMPL and from PMPL
+################################################################################
+parallel = 0
+include $(PMPL_DIR)/Makefile.PMPLdefaults
+
+MP_DEF  := -D$(ROBOT_DEF) $(UTILS_DEF) $(CGAL_DEF) $(BOOST_DEF)
+MP_INCL := $(MP_DEF) $(PMPL_INCL) $(UTILS_INCL) $(STAPL_INCL) $(BOOST_INCL) \
+           $(MPNN_INCL)
+MP_LIBS := $(PMPL_LIB) $(UTILS_LIB) $(BOOST_LIB) $(CGAL_LIB) $(MPNN_LIB)
+
+MP_LIBFILE := $(PMPL_DIR)/libobprm.a
+$(MP_LIBFILE):
+	@echo Building PMPL library...
+	@cd $(PMPL_DIR) && $(MAKE) ROBOT_DEF=$(ROBOT_DEF) platform=$(platform) \
+	  debug=$(debug)
+
+################################################################################
+# Vizmo sources
+################################################################################
+
+VIZMO_SRCS := \
+  Utilities/Camera.cpp \
+  Utilities/Cursor3d.cpp \
+  Utilities/Font.cpp \
+  Utilities/GLUtils.cpp \
+  Utilities/ImageFilters.cpp \
+  Utilities/IO.cpp \
+  Utilities/LoadTexture.cpp \
+  Utilities/PickBox.cpp \
+  Utilities/TransformTool.cpp \
+  Models/ActiveMultiBodyModel.cpp \
+  Models/AvatarModel.cpp \
+  Models/BodyModel.cpp \
+  Models/BoundingBoxModel.cpp \
+  Models/BoundingBox2DModel.cpp \
+  Models/BoundaryModel.cpp \
+  Models/BoundingSphereModel.cpp \
+  Models/BoundingSphere2DModel.cpp \
+  Models/CfgModel.cpp \
+  Models/CrosshairModel.cpp \
+  Models/DebugModel.cpp \
+  Models/EdgeModel.cpp \
+  Models/EnvModel.cpp \
+  Models/GraphModel.cpp \
+  Models/MultiBodyModel.cpp \
+  Models/PathModel.cpp \
+  Models/PolyhedronModel.cpp \
+  Models/QueryModel.cpp \
+  Models/RegionBoxModel.cpp \
+  Models/RegionBox2DModel.cpp \
+  Models/RegionSphereModel.cpp \
+  Models/RegionSphere2DModel.cpp \
+  Models/StaticMultiBodyModel.cpp \
+  Models/SurfaceMultiBodyModel.cpp \
+  Models/TempObjsModel.cpp \
+  Models/WorkspaceDecompositionModel.cpp \
+  Models/ThreadSafeSphereModel.cpp \
+  Models/UserPathModel.cpp \
+  Models/Vizmo.cpp \
+  GUI/AnimationWidget.cpp \
+  GUI/BoundingBoxWidget.cpp \
+  GUI/BoundingSphereWidget.cpp \
+  GUI/CameraPosDialog.cpp \
+  GUI/CaptureOptions.cpp \
+  GUI/ChangeBoundaryDialog.cpp \
+  GUI/ChangePlannerDialog.cpp \
+  GUI/CustomizePathDialog.cpp \
+  GUI/EdgeEditDialog.cpp \
+  GUI/EditRobotDialog.cpp \
+  GUI/EnvironmentOptions.cpp \
+  GUI/FileListDialog.cpp \
+  GUI/FileOptions.cpp \
+  GUI/GLWidget.cpp \
+  GUI/GLWidgetOptions.cpp \
+  GUI/HelpOptions.cpp \
+  GUI/MainMenu.cpp \
+  GUI/MainWindow.cpp \
+  GUI/ModelSelectionWidget.cpp \
+  GUI/MovieSaveDialog.cpp \
+  GUI/ObstaclePosDialog.cpp \
+  GUI/OptionsBase.cpp \
+  GUI/NodeEditDialog.cpp \
+  GUI/PathOptions.cpp \
+  GUI/PlanningOptions.cpp \
+  GUI/QueryEditDialog.cpp \
+  GUI/QueryOptions.cpp \
+  GUI/RegionSamplerDialog.cpp \
+  GUI/RoadmapOptions.cpp \
+  GUI/SliderDialog.cpp \
+  GUI/TextWidget.cpp \
+  GUI/ToolTabOptions.cpp \
+  GUI/ToolTabWidget.cpp
+
+
+################################################################################
+# PHANToM DEFINES
+################################################################################
+PHANTOM_LIBS :=
+ifeq ($(phantom), 1)
+  PHANTOM_LIBS := -lHD -lHDU -lHL -lHLU -lrt
+  MP_DEF       += -DUSE_HAPTICS
+  VIZMO_SRCS   += PHANToM/Manager.cpp
+endif
+
+################################################################################
+# SpaceMouse DEFINES
+################################################################################
+SPACEMOUSE_LIBS :=
+ifeq ($(spacemouse), 1)
+  SPACEMOUSE_LIBS := -lspnav
+  MP_DEF          += -DUSE_SPACEMOUSE
+  VIZMO_SRCS      += SpaceMouse/SpaceMouseManager.cpp
+endif
+
+################################################################################
+# Aggregated
+################################################################################
+DEFS += -DVIZMO
+INCL  = -I$(VIZMO_DIR) $(GL_INCL) $(QT_INCL) $(MP_INCL)
+LIBS  = -L$(VIZMO_DIR) -lvizmo $(MP_LIBS) $(QT_LIBS) $(GL_LIBS) \
+	$(PHANTOM_LIBS) $(SPACEMOUSE_LIBS)

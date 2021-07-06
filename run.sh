@@ -15,6 +15,7 @@ sudo apt-get install qt4-default
 #### Inside PMPL/
 git clone git@gitlab.engr.illinois.edu:parasol-group/parasol/pmpl.git
 git clone git@gitlab.engr.illinois.edu:parasol-group/parasol/pmpl_utils.git
+git checkout milp-gurobi ### Only needed because changes not merge to main branch yet
 cd pmpl
 ln -s ../pmpl_utils/
 cd ..
@@ -31,7 +32,7 @@ cd ../src
 #### Makefile.VizmoDefaults:34: *** Qt moc not found at /usr/lib64/qt4/bin/moc..  Stop.
 
 #### ubuntu problems end
-# make -j4
+# make -j4 platform=Ubuntu
 
 #### Compiling and running the code section 3 PMPL checkout 
 #### Add export PATH=~/PMPL/vizmo/src/:$PATH to bashrc?
